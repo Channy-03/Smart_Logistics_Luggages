@@ -118,7 +118,7 @@ npm run dev                                          # http://localhost:3000
 | 김민찬 | 백엔드, AI 모델, 최적화 엔진, 테스트 |
 | 전호준 | 프론트엔드, 지도, 데모·시연 영상 |
 
-세부 분담: [docs/ROLES.md](docs/ROLES.md)
+세부 분담: [docs/ROLES.md](docs/ROLES.md) · 협업 규칙(브랜치·PR·리뷰): [CONTRIBUTING.md](CONTRIBUTING.md)
 
 ### 작업 현황
 
