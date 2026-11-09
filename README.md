@@ -120,6 +120,16 @@ npm run dev                                          # http://localhost:3000
 
 세부 분담: [docs/ROLES.md](docs/ROLES.md)
 
+### 작업 현황
+
+저장소는 담당자가 자기 파트를 직접 올리는 방식으로 채웁니다. 아래 경로는 담당자가 push하면 링크가 열립니다.
+
+| 파트 | 경로 | 담당 | 상태 |
+|---|---|---|---|
+| 백엔드·AI·최적화·시뮬레이션·테스트 | `backend/`, `simulation/`, `docs/02_design.md`, `docs/03_assumptions.md` | 김민찬 | 올림 |
+| 프론트엔드·백업 데모·스크린샷 | `frontend/`, `prototype/`, `media/` | 전호준 | 예정 |
+| 문제 정의·결과·제출 파일 | `docs/01_problem.md`, `docs/04_results.md`, `submission/` | 김경진 | 예정 |
+
 ## 10. 개발 도구 고지
 
 설계 검토와 코드 작성 일부에 AI 코딩 도구(Claude)를 사용했습니다. 문제 정의, 가정값 선택, 결과 해석과 검증은 팀이 했습니다. 대회 규정상 AI 도구 사용 범위는 주최 측(앵커사업단)에 확인했습니다. <!-- 확인 후 이 문장을 사실대로 고치세요 -->
