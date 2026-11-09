@@ -1,0 +1,14 @@
+fastapi==0.115.*
+uvicorn[standard]>=0.30
+ortools>=9.10
+lightgbm>=4.3
+scikit-learn>=1.4
+numpy
+pandas
+scipy
+pillow
+httpx
+pytest
+# 선택: 실제 임베딩/이미지 모델
+# sentence-transformers  # KR-SBERT
+# torch torchvision      # EfficientNet-B0
