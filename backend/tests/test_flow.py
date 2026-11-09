@@ -10,7 +10,7 @@ from fastapi.testclient import TestClient  # noqa: E402
 
 from app.main import app  # noqa: E402
 
-SAMPLES = Path(__file__).resolve().parents[2] / "frontend" / "public" / "samples"
+SAMPLES = Path(__file__).resolve().parent / "fixtures"
 GOOD_TEXT = "사이즈가 작아요. 한 번도 신지 않았고 포장 그대로입니다."
 
 
