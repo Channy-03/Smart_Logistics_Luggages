@@ -1,0 +1,17 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: light;
+  --font-sans: "IBM Plex Sans KR", -apple-system, "Apple SD Gothic Neo", sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, monospace;
+}
+body {
+  @apply bg-canvas text-ink antialiased;
+  background:
+    radial-gradient(1200px 600px at 85% -10%, rgba(16, 185, 129, .10), transparent 60%),
+    radial-gradient(900px 500px at -10% 30%, rgba(49, 104, 214, .05), transparent 60%), #F6F8F7;
+}
+.leaflet-container { font-family: inherit; background: #F2F6F4; border-radius: 18px; }
+@media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; transition: none !important; } }
