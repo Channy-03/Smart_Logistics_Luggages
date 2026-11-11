@@ -1,0 +1,12 @@
+# 파트별 담당자. PR이 열리면 해당 파트 담당자가 리뷰어로 자동 지정됩니다.
+# 경진·호준의 GitHub 아이디를 확인한 뒤 아래 주석(#)을 지우고 아이디를 바꿔 넣으세요.
+
+/backend/     @Channy-03
+/simulation/  @Channy-03
+
+# /frontend/            @호준_GitHub_아이디
+# /prototype/           @호준_GitHub_아이디
+# /media/               @호준_GitHub_아이디
+# /docs/01_problem.md   @경진_GitHub_아이디
+# /docs/04_results.md   @경진_GitHub_아이디
+# /submission/          @경진_GitHub_아이디
