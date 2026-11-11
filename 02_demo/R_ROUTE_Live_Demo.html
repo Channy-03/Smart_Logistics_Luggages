@@ -1,0 +1,685 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>R_ROUTE Live Demo</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js"></script>
+<style>
+/* Layout: 고정 글래스 내비 + 6개 화면을 해시로 전환, 하단 데모 HUD가 10단계 시나리오를 진행 */
+:root{
+  --bg:#F6F8F7; --surface:rgba(255,255,255,.72); --solid:#FFFFFF; --ink:#0B1513; --ink2:#4B5B57; --ink3:#8A9894;
+  --line:rgba(11,21,19,.08); --line2:rgba(11,21,19,.14);
+  --green:#0E9F6E; --green2:#10B981; --mint:#D9F5EA; --greenGlow:rgba(16,185,129,.28);
+  --amber:#C27C0E; --red:#D1453B; --blue:#3168D6; --gray:#A7B3B0;
+  --display:"IBM Plex Sans KR",-apple-system,"Apple SD Gothic Neo","Malgun Gothic",sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,"SFMono-Regular",Menlo,monospace;
+  --r:18px; color-scheme:light;
+}
+*{box-sizing:border-box}
+html,body{background:var(--bg);color:var(--ink)}
+body{font-family:var(--display);font-size:15px;line-height:1.55;-webkit-font-smoothing:antialiased;min-height:100%;
+  background:
+   radial-gradient(1200px 600px at 85% -10%,rgba(16,185,129,.10),transparent 60%),
+   radial-gradient(900px 500px at -10% 30%,rgba(49,104,214,.05),transparent 60%),var(--bg)}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:60;background:var(--bg)}
+.mono{font-family:var(--mono);font-variant-numeric:tabular-nums}
+button{font:inherit;color:inherit;cursor:pointer}
+button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid var(--green2);outline-offset:2px}
+.wrap{max-width:1180px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+/* nav */
+.nav{position:sticky;top:env(safe-area-inset-top,0px);z-index:50;backdrop-filter:saturate(1.6) blur(16px);-webkit-backdrop-filter:saturate(1.6) blur(16px);
+  background:rgba(246,248,247,.72);border-bottom:1px solid var(--line)}
+.nav .wrap{display:flex;align-items:center;gap:16px;height:60px}
+.logo{display:flex;align-items:center;gap:10px;font-weight:700;letter-spacing:-.01em;white-space:nowrap}
+.logo svg{flex:none}
+.tabs{display:flex;gap:2px;overflow-x:auto;scrollbar-width:none;flex:1;min-width:0}
+.tabs::-webkit-scrollbar{display:none}
+.tab{border:0;background:none;padding:7px 12px;border-radius:999px;font-size:13.5px;color:var(--ink2);white-space:nowrap}
+.tab:hover{background:rgba(11,21,19,.04)}
+.tab[aria-current="page"]{background:var(--ink);color:#fff}
+.cta{border:0;background:var(--green);color:#fff;padding:9px 16px;border-radius:999px;font-weight:600;font-size:13.5px;white-space:nowrap;
+  box-shadow:0 6px 20px -6px var(--greenGlow),inset 0 1px 0 rgba(255,255,255,.25)}
+.cta:hover{background:#0B8C60}
+.ghost{border:1px solid var(--line2);background:var(--solid);padding:9px 16px;border-radius:999px;font-weight:500;font-size:13.5px}
+/* common */
+main{padding-block:28px 140px}
+.screen{display:none}
+.screen.on{display:block;animation:fade .45s ease}
+@keyframes fade{from{opacity:.35;transform:translateY(6px)}to{opacity:1;transform:none}}
+.eyebrow{font-family:var(--mono);font-size:11.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--green)}
+h1,h2,h3{letter-spacing:-.02em;text-wrap:balance;margin:0}
+h2{font-size:28px;font-weight:700}
+.sub{color:var(--ink2);max-width:62ch;margin:.4em 0 0}
+.head{display:flex;justify-content:space-between;align-items:flex-end;gap:16px;flex-wrap:wrap;margin-bottom:20px}
+.glass{background:var(--surface);backdrop-filter:blur(18px) saturate(1.4);-webkit-backdrop-filter:blur(18px) saturate(1.4);
+  border:1px solid rgba(255,255,255,.9);box-shadow:0 1px 0 var(--line),0 20px 40px -24px rgba(11,40,30,.18);border-radius:var(--r)}
+.pad{padding:22px}
+.label{font-size:12px;color:var(--ink3);letter-spacing:.02em}
+.pill{display:inline-flex;align-items:center;gap:6px;font-size:12px;padding:4px 10px;border-radius:999px;background:var(--mint);color:#06694A;font-weight:600}
+.pill.gray{background:rgba(11,21,19,.06);color:var(--ink2)}
+.pill.amber{background:#FBEFD9;color:#8A5605}
+.dot{width:7px;height:7px;border-radius:50%;background:currentColor;display:inline-block}
+.live .dot{animation:pulse 1.6s infinite}
+@keyframes pulse{0%{box-shadow:0 0 0 0 rgba(16,185,129,.5)}70%{box-shadow:0 0 0 8px rgba(16,185,129,0)}100%{box-shadow:0 0 0 0 rgba(16,185,129,0)}}
+.grid{display:grid;gap:18px}
+.g2{grid-template-columns:minmax(0,1fr) minmax(0,1.25fr)}
+.g3{grid-template-columns:repeat(3,minmax(0,1fr))}
+@media (max-width:900px){.g2,.g3{grid-template-columns:minmax(0,1fr)}}
+/* HERO */
+.hero{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.1fr);gap:28px;align-items:center;padding-block:24px 8px}
+@media (max-width:900px){.hero{grid-template-columns:minmax(0,1fr)}}
+.hero h1{font-size:clamp(34px,5.2vw,58px);line-height:1.08;font-weight:700}
+.hero h1 em{font-style:normal;color:var(--green)}
+.hero .lede{font-size:17px;color:var(--ink2);margin:18px 0 26px;max-width:46ch}
+.hero .btns{display:flex;gap:10px;flex-wrap:wrap}
+.slogan{font-family:var(--mono);font-size:12.5px;color:var(--ink3);margin-top:22px}
+.flowcard{position:relative;padding:14px}
+.flowcard svg{width:100%;height:auto;display:block}
+.stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-top:28px}
+@media (max-width:760px){.stats{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.stat{padding:18px}
+.stat b{display:block;font-family:var(--mono);font-size:30px;font-weight:600;letter-spacing:-.03em}
+.stat b.g{color:var(--green)}
+.compare{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:12px;margin-top:18px}
+@media (max-width:760px){.compare{grid-template-columns:minmax(0,1fr)}}
+.chain{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-top:10px;font-size:13px}
+.chain span{padding:5px 10px;border-radius:8px;background:rgba(11,21,19,.05)}
+.chain i{font-style:normal;color:var(--ink3)}
+.chain.new span{background:var(--mint);color:#06694A;font-weight:600}
+.layers{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:8px;margin-top:18px}
+@media (max-width:900px){.layers{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.layer{padding:12px;border-radius:12px;background:var(--solid);border:1px solid var(--line);font-size:12.5px}
+.layer b{display:block;font-size:13px;margin-bottom:2px}
+.layer .mono{color:var(--ink3);font-size:11px}
+/* ANALYZE */
+.form{display:grid;gap:14px}
+.field label{display:block;font-size:12px;color:var(--ink3);margin-bottom:6px}
+.field input,.field select,.field textarea{width:100%;border:1px solid var(--line2);background:var(--solid);border-radius:12px;padding:11px 12px;font:inherit;font-size:14px;color:var(--ink)}
+.field textarea{resize:vertical;min-height:64px}
+.row2{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:12px}
+.prod{display:flex;gap:12px;align-items:center;padding:12px;border-radius:14px;background:var(--solid);border:1px solid var(--line)}
+.thumb{width:56px;height:56px;border-radius:12px;background:linear-gradient(135deg,#EEF3F1,#DDE7E3);display:grid;place-items:center;flex:none}
+.drop{position:relative;border:1.5px dashed var(--line2);border-radius:16px;padding:16px;text-align:center;background:rgba(255,255,255,.6);min-height:150px;display:grid;place-items:center;overflow:hidden;transition:border-color .2s}
+.drop.has{border-style:solid;border-color:var(--green2)}
+.drop img,.drop canvas{max-width:100%;max-height:180px;border-radius:10px}
+.drop input{position:absolute;inset:0;opacity:0;cursor:pointer}
+.scan{position:absolute;left:0;right:0;height:46px;background:linear-gradient(180deg,transparent,rgba(16,185,129,.35),transparent);top:-50px;pointer-events:none}
+.scanning .scan{animation:scan 1.1s linear infinite}
+@keyframes scan{to{top:100%}}
+.result{display:grid;grid-template-columns:auto minmax(0,1fr);gap:22px;align-items:center}
+@media (max-width:560px){.result{grid-template-columns:minmax(0,1fr)}}
+.ring{position:relative;width:170px;height:170px}
+.ring svg{transform:rotate(-90deg)}
+.ring .v{position:absolute;inset:0;display:grid;place-items:center;text-align:center}
+.ring .v b{font-family:var(--mono);font-size:40px;font-weight:600;letter-spacing:-.04em;line-height:1}
+.models{display:grid;gap:10px}
+.model{display:grid;grid-template-columns:120px minmax(0,1fr) 46px;gap:10px;align-items:center;font-size:13px}
+.bar{height:8px;border-radius:99px;background:rgba(11,21,19,.07);overflow:hidden}
+.bar i{display:block;height:100%;width:0;border-radius:99px;background:linear-gradient(90deg,#34D399,var(--green));transition:width 1s cubic-bezier(.2,.8,.2,1)}
+.model.run span:first-child::after{content:" · 분석 중";color:var(--green)}
+.paths{display:grid;gap:8px;margin-top:6px}
+.path{display:grid;grid-template-columns:150px minmax(0,1fr) 92px;gap:10px;align-items:center;font-size:13px}
+.path .pbar{height:22px;border-radius:7px;background:rgba(11,21,19,.04);position:relative;overflow:hidden}
+.path .pbar i{position:absolute;left:0;top:0;bottom:0;width:0;background:var(--gray);border-radius:7px;transition:width .9s ease}
+.path.best .pbar i{background:var(--green)}
+.path.best{font-weight:600}
+.path .mono{text-align:right;font-size:12.5px}
+.reco{display:flex;gap:12px;align-items:center;justify-content:space-between;flex-wrap:wrap;padding:14px 16px;border-radius:14px;background:linear-gradient(135deg,#E8FBF2,#F4FFFA);border:1px solid #BFEBD8;margin-top:14px}
+.reco b{font-size:18px}
+.muted{color:var(--ink3)}
+.hidden-soft{opacity:.25;filter:grayscale(1);transition:opacity .4s}
+.shown{opacity:1;filter:none}
+/* MAP */
+.mapwrap{position:relative;overflow:hidden;padding:0;align-self:start}
+.mapwrap svg{display:block;width:100%;height:auto;background:linear-gradient(180deg,#FBFDFC,#F2F6F4)}
+.maphud{position:absolute;left:14px;top:14px;display:flex;gap:8px;flex-wrap:wrap}
+.legend{position:absolute;right:14px;bottom:14px;display:flex;gap:12px;font-size:12px;background:rgba(255,255,255,.85);padding:8px 12px;border-radius:12px;border:1px solid var(--line);flex-wrap:wrap}
+.legend span{display:flex;align-items:center;gap:6px;white-space:nowrap}
+.feed{display:grid;gap:8px;max-height:520px;overflow:auto}
+.feeditem{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:10px;align-items:center;padding:10px 12px;border-radius:12px;background:var(--solid);border:1px solid var(--line);font-size:13px;animation:fade .4s}
+.feeditem.hero{border-color:#9FE3C6;background:#F2FCF7}
+.feeditem small{display:block;color:var(--ink3);font-size:11.5px}
+.mapside{display:grid;gap:14px;align-content:start}
+.kv{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.kv div{padding:12px;border-radius:12px;background:var(--solid);border:1px solid var(--line)}
+.kv b{font-family:var(--mono);font-size:20px;display:block}
+.mapgrid{grid-template-columns:minmax(0,1.9fr) minmax(0,1fr)}
+@media (max-width:900px){.mapgrid{grid-template-columns:minmax(0,1fr)}}
+/* ENGINE */
+.engine svg{width:100%;height:auto;display:block}
+.formula{font-family:var(--mono);font-size:13px;padding:12px 14px;border-radius:12px;background:#0E1A17;color:#D6F5E8;overflow-x:auto;white-space:nowrap}
+.formula em{color:#7EE2B8;font-style:normal}
+.costtable{width:100%;border-collapse:collapse;font-size:13px}
+.costtable td,.costtable th{padding:9px 6px;border-bottom:1px solid var(--line);text-align:left}
+.costtable td.n,.costtable th.n{text-align:right;font-family:var(--mono)}
+.costtable tr.win td{color:#06694A;font-weight:600}
+.total{display:flex;justify-content:space-between;align-items:baseline;gap:10px;margin-top:12px;flex-wrap:wrap}
+.total b{font-family:var(--mono);font-size:26px;color:var(--green)}
+/* VERIFY */
+.checks{display:grid;gap:10px}
+.check{display:flex;gap:12px;align-items:center;padding:12px 14px;border-radius:12px;background:var(--solid);border:1px solid var(--line);font-size:14px;transition:all .3s}
+.check .box{width:22px;height:22px;border-radius:7px;border:1.5px solid var(--line2);display:grid;place-items:center;flex:none;transition:all .3s}
+.check.ok{border-color:#BFEBD8}
+.check.ok .box{background:var(--green);border-color:var(--green)}
+.check .box svg{opacity:0}
+.check.ok .box svg{opacity:1}
+.check small{margin-left:auto;color:var(--ink3);font-family:var(--mono);font-size:12px}
+.grades{display:flex;gap:10px;margin-top:14px}
+.grade{flex:1;text-align:center;padding:14px 8px;border-radius:14px;border:1px solid var(--line);background:var(--solid);transition:all .4s}
+.grade b{display:block;font-size:28px;font-family:var(--mono)}
+.grade.on{background:var(--ink);color:#fff;border-color:var(--ink);transform:translateY(-3px);box-shadow:0 14px 30px -12px rgba(11,21,19,.4)}
+.qr{display:grid;place-items:center;padding:18px;border-radius:16px;background:var(--solid);border:1px solid var(--line);position:relative;min-height:240px}
+.qr canvas{width:180px;height:180px;image-rendering:pixelated;transition:opacity .5s,filter .5s}
+.qr.sealed::after{content:"SEALED";position:absolute;top:12px;right:12px;font-family:var(--mono);font-size:11px;letter-spacing:.12em;color:#06694A;background:var(--mint);padding:3px 8px;border-radius:6px}
+.timeline{display:grid;gap:0;position:relative;margin-top:4px}
+.ev{display:grid;grid-template-columns:22px minmax(0,1fr) auto;gap:10px;align-items:start;padding:8px 0;font-size:13px;opacity:.28;transition:opacity .4s}
+.ev.on{opacity:1}
+.ev .node{width:12px;height:12px;border-radius:50%;margin:4px 5px;background:var(--gray);position:relative}
+.ev.on .node{background:var(--green)}
+.ev .node::after{content:"";position:absolute;left:5px;top:12px;width:2px;height:30px;background:var(--line2)}
+.ev:last-child .node::after{display:none}
+.ev .mono{font-size:11.5px;color:var(--ink3)}
+.insp{position:relative;border-radius:14px;overflow:hidden;background:linear-gradient(135deg,#EEF3F1,#E1EAE6);aspect-ratio:4/3;display:grid;place-items:center;max-width:100%}
+.insp .tagbox{position:absolute;border:2px solid var(--green2);border-radius:8px;opacity:0;transition:opacity .4s}
+.insp .tagbox span{position:absolute;top:-22px;left:-2px;background:var(--green);color:#fff;font-size:10.5px;font-family:var(--mono);padding:2px 6px;border-radius:5px;white-space:nowrap}
+.insp.on .tagbox{opacity:1}
+/* IMPACT */
+.kpis{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}
+@media (max-width:900px){.kpis{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media (max-width:480px){.kpis{grid-template-columns:minmax(0,1fr)}}
+.kpi{padding:18px}
+.kpi b{display:block;font-family:var(--mono);font-size:34px;font-weight:600;letter-spacing:-.04em;margin:6px 0 2px}
+.kpi b.g{color:var(--green)}
+.kpi .spark{height:34px;width:100%;margin-top:8px}
+.ba{display:grid;gap:14px}
+.barow{display:grid;grid-template-columns:110px minmax(0,1fr);gap:12px;align-items:center;font-size:13px}
+.bars2{display:grid;gap:4px}
+.bars2 div{height:14px;border-radius:5px;position:relative;transition:width .9s ease}
+.bars2 .b{background:#CBD5D2}
+.bars2 .a{background:var(--green)}
+.bars2 div span{position:absolute;left:calc(100% + 6px);top:-2px;font-family:var(--mono);font-size:11.5px;white-space:nowrap;color:var(--ink2)}
+.slider{width:100%;accent-color:var(--green)}
+.big{font-family:var(--mono);font-size:44px;font-weight:600;color:var(--green);letter-spacing:-.04em}
+/* HUD */
+.hud{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(16px + env(safe-area-inset-bottom,0px));z-index:55;width:min(760px,calc(100% - 32px));
+  display:flex;align-items:center;gap:12px;padding:10px 12px 10px 16px;border-radius:999px;background:rgba(11,21,19,.88);color:#fff;
+  backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);box-shadow:0 20px 40px -16px rgba(0,0,0,.45)}
+.hud .stepn{font-family:var(--mono);font-size:12px;color:#7EE2B8;white-space:nowrap}
+.hud .stept{flex:1;min-width:0;font-size:13.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.hud .prog{position:absolute;left:18px;right:18px;bottom:4px;height:2px;border-radius:2px;background:rgba(255,255,255,.12);overflow:hidden}
+.hud .prog i{display:block;height:100%;width:0;background:#34D399;transition:width .5s}
+.hud button{border:0;border-radius:999px;padding:8px 12px;background:rgba(255,255,255,.1);color:#fff;font-size:13px;white-space:nowrap}
+.hud button.go{background:#10B981;color:#04281C;font-weight:700}
+.toast{position:fixed;right:max(16px,env(safe-area-inset-right,0px));top:calc(74px + env(safe-area-inset-top,0px));z-index:56;padding:12px 16px;border-radius:14px;background:var(--solid);border:1px solid #BFEBD8;box-shadow:0 16px 40px -18px rgba(11,40,30,.35);font-size:13.5px;transform:translateY(-10px);opacity:0;transition:all .35s;pointer-events:none;max-width:min(360px,calc(100% - 32px))}
+.toast.on{transform:none;opacity:1}
+.demo-tag{font-family:var(--mono);font-size:11px;color:var(--ink3)}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+
+<header class="nav">
+  <div class="wrap">
+    <div class="logo">
+      <svg width="26" height="26" viewBox="0 0 26 26" aria-hidden="true"><rect width="26" height="26" rx="8" fill="#0B1513"/><path d="M7 17c0-5 3-8 8-8h3" stroke="#34D399" stroke-width="2.4" fill="none" stroke-linecap="round"/><path d="M16 6l3 3-3 3" stroke="#34D399" stroke-width="2.4" fill="none" stroke-linecap="round" stroke-linejoin="round"/><circle cx="7" cy="19" r="2" fill="#fff"/></svg>
+      R_ROUTE
+    </div>
+    <nav class="tabs" aria-label="화면">
+      <button class="tab" data-go="home">Overview</button>
+      <button class="tab" data-go="analyze">AI 분석</button>
+      <button class="tab" data-go="map">Live Map</button>
+      <button class="tab" data-go="engine">Optimizer</button>
+      <button class="tab" data-go="verify">Hub 검수</button>
+      <button class="tab" data-go="impact">Impact</button>
+    </nav>
+    <span class="pill gray" title="실제 계산은 로컬 MVP(FastAPI)에서 합니다. 이 페이지는 MVP 결과를 녹화한 백업입니다." style="white-space:nowrap">녹화된 데모</span>
+    <button class="cta" id="startDemo">▶ 데모 시작</button>
+  </div>
+</header>
+
+<main class="wrap">
+
+<!-- 1 LANDING -->
+<section class="screen" id="s-home" aria-label="Overview">
+  <div class="hero">
+    <div>
+      <div class="eyebrow">Reverse logistics, re-routed</div>
+      <h1>반품을<br><em>돌려보내지 않는</em><br>물류</h1>
+      <p class="lede">R_ROUTE는 반품 접수 순간 상품을 이동 중 재고로 편입하고, 같은 동네의 다음 구매자에게 바로 보냅니다. 판매자 창고까지 왕복하던 300km가 1km가 됩니다.</p>
+      <div class="btns">
+        <button class="cta" data-start>▶ 3분 데모 보기</button>
+        <button class="ghost" data-go="engine">최적화 엔진 보기</button>
+      </div>
+      <div class="slogan">반품은 돌아가는 것이 아니라 다시 출발하는 것이다.</div>
+    </div>
+    <div class="glass flowcard">
+      <svg id="heroFlow" viewBox="0 0 560 380" role="img" aria-label="반품 상품이 판매자 창고 대신 허브를 거쳐 다음 구매자에게 가는 흐름">
+        <defs>
+          <linearGradient id="gl" x1="0" x2="1"><stop offset="0" stop-color="#34D399"/><stop offset="1" stop-color="#0E9F6E"/></linearGradient>
+          <filter id="soft" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="6"/></filter>
+        </defs>
+        <!-- old route -->
+        <path id="oldPath" d="M80 270 C 120 60, 440 40, 480 120" fill="none" stroke="#C9D3D0" stroke-width="2" stroke-dasharray="6 7"/>
+        <g transform="translate(480,104)"><rect x="-58" y="-34" width="116" height="34" rx="10" fill="#fff" stroke="#DCE3E1"/><text x="0" y="-12" text-anchor="middle" font-size="12" fill="#8A9894">수도권 판매자 창고</text></g>
+        <text x="282" y="70" text-anchor="middle" font-size="12" fill="#8A9894" font-family="IBM Plex Mono">기존 · 왕복 600km · 5.6일</text>
+        <!-- new route -->
+        <path id="newA" d="M80 270 C 150 300, 220 300, 280 270" fill="none" stroke="url(#gl)" stroke-width="3"/>
+        <path id="newB" d="M280 270 C 340 240, 410 240, 480 270" fill="none" stroke="url(#gl)" stroke-width="3"/>
+        <text x="280" y="362" text-anchor="middle" font-size="12.5" fill="#06694A" font-family="IBM Plex Mono" font-weight="600">R_ROUTE · 1.6km · 2.1일</text>
+        <!-- nodes -->
+        <g transform="translate(80,270)"><circle r="30" fill="#34D399" opacity=".18" filter="url(#soft)"/><circle r="20" fill="#fff" stroke="#0B1513" stroke-width="1.5"/><path d="M-8 -2h16v9h-16z M-8 -2l3-5h10l3 5" fill="none" stroke="#0B1513" stroke-width="1.6" stroke-linejoin="round"/><text y="44" text-anchor="middle" font-size="13" font-weight="600" fill="#0B1513">반품 고객</text><text y="61" text-anchor="middle" font-size="11.5" fill="#8A9894">상남동</text></g>
+        <g transform="translate(280,270)"><circle r="34" fill="#34D399" opacity=".25" filter="url(#soft)"><animate attributeName="r" values="26;38;26" dur="2.4s" repeatCount="indefinite"/></circle><rect x="-20" y="-20" width="40" height="40" rx="11" fill="#0B1513" transform="rotate(45)"/><text y="5" text-anchor="middle" font-size="12" font-weight="700" fill="#34D399" font-family="IBM Plex Mono">HUB</text><text y="44" text-anchor="middle" font-size="13" font-weight="600" fill="#0B1513">상남 허브</text><text y="61" text-anchor="middle" font-size="11.5" fill="#8A9894">검수 · QR 봉인</text></g>
+        <g transform="translate(480,270)"><circle r="30" fill="#34D399" opacity=".18" filter="url(#soft)"/><circle r="20" fill="#0E9F6E"/><circle cy="-4" r="5" fill="#fff"/><path d="M-9 9c2-6 16-6 18 0" fill="#fff"/><text y="44" text-anchor="middle" font-size="13" font-weight="600" fill="#0B1513">다음 구매자</text><text y="61" text-anchor="middle" font-size="11.5" fill="#8A9894">1.0km 거리</text></g>
+        <circle id="pkOld" r="5" fill="#A7B3B0"/>
+        <circle id="pkNew" r="7" fill="#0E9F6E" stroke="#fff" stroke-width="2"/>
+      </svg>
+    </div>
+  </div>
+  <div class="stats">
+    <div class="glass stat"><span class="label">반품 1건 물류비</span><b class="g">−16.4%</b><span class="muted" style="font-size:12px">보수적 시나리오 −9.9%</span></div>
+    <div class="glass stat"><span class="label">재판매 리드타임</span><b class="g">−40%</b><span class="muted" style="font-size:12px">5.6일 → 3.3일</span></div>
+    <div class="glass stat"><span class="label">CO₂ 배출</span><b class="g">−17.2%</b><span class="muted" style="font-size:12px">반품 1건 기준</span></div>
+    <div class="glass stat"><span class="label">직송 매칭률</span><b>74.6%</b><span class="muted" style="font-size:12px">직송가능 반품 대비</span></div>
+  </div>
+  <div class="compare">
+    <div class="glass pad"><span class="label">기존 반품</span><div class="chain"><span>고객</span><i>→</i><span>판매자 창고 300km</span><i>→</i><span>검수 2일</span><i>→</i><span>재입고</span><i>→</i><span>다음 구매자</span></div><p class="sub" style="font-size:13.5px">판단은 창고에 도착한 뒤에야 시작됩니다.</p></div>
+    <div class="glass pad"><span class="label">R_ROUTE</span><div class="chain new"><span>고객</span><i>→</i><span>지역 허브</span><i>→</i><span>다음 구매자</span></div><p class="sub" style="font-size:13.5px">판단은 반품 버튼을 누른 순간 끝납니다.</p></div>
+  </div>
+  <div class="layers">
+    <div class="layer"><b>AI Prediction</b>재판매 확률·등급<div class="mono">LightGBM · EfficientNet · KR-SBERT</div></div>
+    <div class="layer"><b>Decision Engine</b>6개 경로 기대 순가치<div class="mono">V = pR − (1−p)F − T − I − D − λE</div></div>
+    <div class="layer"><b>ATP Inventory</b>이동 중 재고 편입<div class="mono">promise = p × ETA</div></div>
+    <div class="layer"><b>Min Cost Flow</b>정·역물류 통합 최적화<div class="mono">OR-Tools</div></div>
+    <div class="layer"><b>Matching</b>반품 ↔ 신규 주문<div class="mono">30분 롤링 배치</div></div>
+    <div class="layer"><b>Verification Hub</b>검수·QR·해시 체인<div class="mono">HMAC · SHA-256</div></div>
+    <div class="layer"><b>Analytics</b>KPI 실시간 집계<div class="mono">cost · km · CO₂ · days</div></div>
+  </div>
+</section>
+
+<!-- 2 ANALYZE -->
+<section class="screen" id="s-analyze" aria-label="AI 반품 분석">
+  <div class="head"><div><div class="eyebrow">Step 1–4 · AI Prediction Layer</div><h2>반품 접수와 AI 재판매 분석</h2><p class="sub">사유 텍스트, 상품 사진, 정형 변수를 세 서브모델이 따로 읽고 LightGBM이 합칩니다.</p></div><span class="pill gray mono">RT-2611-0427</span></div>
+  <div class="grid g2">
+    <div class="glass pad form" id="returnForm">
+      <div class="prod"><div class="thumb"><svg width="34" height="34" viewBox="0 0 34 34"><path d="M3 22c4 0 7-2 9-6l3 2c2 1 5 2 9 2 4 0 7 2 7 5v2H3z" fill="#fff" stroke="#0B1513" stroke-width="1.5" stroke-linejoin="round"/><path d="M3 27h28" stroke="#0B1513" stroke-width="1.5"/><path d="M14 18l2-2M17 19l2-2" stroke="#0E9F6E" stroke-width="1.5"/></svg></div><div style="min-width:0"><b style="font-size:14px">나이키 에어포스 1 '07 · 270mm</b><div class="muted" style="font-size:12.5px">129,000원 · 패션 · 판매자 창고 수도권(300km)</div></div></div>
+      <div class="row2">
+        <div class="field"><label for="reason">반품 사유</label><select id="reason"><option value="size">사이즈가 맞지 않아요</option><option value="change">단순 변심</option><option value="defect">상품 불량</option><option value="damaged">파손·오염</option></select></div>
+        <div class="field"><label for="days">구매 후 경과일</label><input id="days" type="number" value="3" min="0" max="30"></div>
+      </div>
+      <div class="field"><label for="memo">상세 사유</label><textarea id="memo">사이즈가 작아요. 한 번도 신지 않았고 포장 그대로입니다.</textarea></div>
+      <div class="field"><label>상품 사진</label>
+        <div class="drop" id="drop"><div class="scan"></div><div id="dropInner"><div style="font-weight:600">사진을 끌어다 놓거나 눌러서 선택</div><div class="muted" style="font-size:12.5px">사진이 없으면 샘플 이미지로 분석합니다</div></div><input id="file" type="file" accept="image/*" aria-label="상품 사진 선택"></div>
+      </div>
+      <button class="cta" id="runAI" style="justify-self:start">AI 분석 실행</button>
+    </div>
+    <div class="glass pad">
+      <div class="result">
+        <div class="ring" id="ring">
+          <svg width="170" height="170" viewBox="0 0 170 170"><circle cx="85" cy="85" r="72" fill="none" stroke="rgba(11,21,19,.07)" stroke-width="12"/><circle id="ringArc" cx="85" cy="85" r="72" fill="none" stroke="url(#ringG)" stroke-width="12" stroke-linecap="round" stroke-dasharray="452.4" stroke-dashoffset="452.4" style="transition:stroke-dashoffset 1.2s cubic-bezier(.2,.8,.2,1)"/><defs><linearGradient id="ringG" x1="0" x2="1"><stop offset="0" stop-color="#34D399"/><stop offset="1" stop-color="#0E9F6E"/></linearGradient></defs></svg>
+          <div class="v"><div><b id="probTxt">—</b><div class="label">재판매 확률</div></div></div>
+        </div>
+        <div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px"><span class="pill gray" id="gradePill">등급 대기</span><span class="pill gray mono">model rroute-fusion-0.1</span></div>
+          <div class="models">
+            <div class="model" id="m1"><span>사유 텍스트</span><div class="bar"><i></i></div><span class="mono">—</span></div>
+            <div class="model" id="m2"><span>상품 이미지</span><div class="bar"><i></i></div><span class="mono">—</span></div>
+            <div class="model" id="m3"><span>정형 변수</span><div class="bar"><i></i></div><span class="mono">—</span></div>
+          </div>
+          <div class="muted" style="font-size:12px;margin-top:8px">KR-SBERT · EfficientNet-B0 · LightGBM + isotonic 보정</div>
+        </div>
+      </div>
+      <div style="margin-top:20px"><span class="label">처리 경로별 기대 순가치 (원)</span>
+        <div class="paths" id="paths"></div>
+      </div>
+      <div class="reco hidden-soft" id="reco"><div><span class="label">추천 경로</span><br><b>Direct Reallocation</b> <span class="muted" style="font-size:13px">판매자 복귀 대비 <span class="mono">+20,329원</span></span></div><button class="cta" data-go="map">근처 주문 찾기 →</button></div>
+    </div>
+  </div>
+</section>
+
+<!-- 3 MAP -->
+<section class="screen" id="s-map" aria-label="실시간 매칭 지도">
+  <div class="head"><div><div class="eyebrow">Step 5–6, 9 · ATP Inventory · Matching Engine</div><h2>Live Matching Map · 창원시</h2><p class="sub">허브 10곳, 이동 중 재고와 열린 주문이 30분마다 다시 배정됩니다.</p></div><span class="pill gray">녹화된 시나리오</span></div>
+  <div class="grid mapgrid">
+    <div class="glass mapwrap">
+      <svg id="map" viewBox="0 0 1000 640" role="img" aria-label="창원시 허브와 반품, 주문, 매칭 연결선 지도"></svg>
+      
+      <div class="legend"><span><svg width="12" height="12"><rect x="2" y="2" width="8" height="8" transform="rotate(45 6 6)" fill="#0B1513"/></svg>허브</span><span><svg width="12" height="12"><circle cx="6" cy="6" r="4" fill="#F59E0B"/></svg>반품(ATP)</span><span><svg width="12" height="12"><circle cx="6" cy="6" r="4" fill="#fff" stroke="#3168D6" stroke-width="2"/></svg>신규 주문</span><span><svg width="18" height="12"><path d="M1 6h16" stroke="#0E9F6E" stroke-width="2.5"/></svg>매칭</span></div>
+    </div>
+    <div class="mapside">
+      <div class="kv"><div><span class="label">이동 중 재고</span><b id="kAtp">6</b></div><div><span class="label">열린 주문</span><b id="kOrd">39</b></div><div><span class="label">이번 배치 매칭</span><b id="kMt">5</b></div><div><span class="label">배치 절감액</span><b id="kSv">79,222</b></div></div>
+      <div class="glass pad" style="padding:16px"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px"><b style="font-size:14px">매칭 피드</b><button class="ghost" id="runMatch" style="padding:6px 12px">매칭 실행</button></div><div class="feed" id="feed"></div></div>
+    </div>
+  </div>
+</section>
+
+<!-- 4 ENGINE -->
+<section class="screen" id="s-engine" aria-label="최적화 엔진">
+  <div class="head"><div><div class="eyebrow">Step 6 · Min Cost Flow Optimizer</div><h2>왜 이 구매자인가</h2><p class="sub">반품, 신규 재고, 주문, 판매자 복귀를 하나의 네트워크로 놓고 총비용이 최소가 되는 흐름을 찾습니다. 매칭이 없어도 해가 항상 존재해 기존보다 나빠지지 않습니다.</p></div><button class="cta" id="solveBtn">최적화 실행</button></div>
+  <div class="grid g2" style="grid-template-columns:minmax(0,1.5fr) minmax(0,1fr)">
+    <div class="glass pad engine"><svg id="graph" viewBox="0 0 720 420" role="img" aria-label="최소비용 흐름 네트워크"></svg></div>
+    <div class="grid" style="align-content:start">
+      <div class="formula">min <em>Σ</em> c<sub>ij</sub>·x<sub>ij</sub> &nbsp;s.t.&nbsp; <em>Σ</em>x<sub>out</sub> − <em>Σ</em>x<sub>in</sub> = b<sub>i</sub>, 0 ≤ x ≤ u</div>
+      <div class="glass pad">
+        <table class="costtable"><thead><tr><th>간선</th><th class="n">비용(원)</th><th class="n">흐름</th></tr></thead><tbody id="costRows"></tbody></table>
+        <div class="total"><span class="label">총비용</span><span class="mono muted" id="tBase">48,500</span><b id="tOpt">—</b></div>
+        <div class="muted" style="font-size:12.5px;margin-top:6px">간선 비용 = 운송비(2,500원/회 + 30원/km) + 검수·처리비. OR-Tools SimpleMinCostFlow, 실행 시간 &lt; 10ms.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 5 VERIFY -->
+<section class="screen" id="s-verify" aria-label="허브 검수">
+  <div class="head"><div><div class="eyebrow">Step 7–8 · Verification Hub</div><h2>상남 허브 검수와 QR 인증</h2><p class="sub">허브 검수 완료가 곧 판매자 수령으로 간주되어 고객 환불이 즉시 처리됩니다. 다음 구매자는 QR로 모든 이력을 확인합니다.</p></div><span class="pill gray mono">H04 · 편의점 제휴 허브</span></div>
+  <div class="grid g3">
+    <div class="glass pad">
+      <div class="insp" id="insp"><svg width="70%" viewBox="0 0 200 120" aria-hidden="true"><path d="M10 80c14 0 26-6 34-20l12 7c8 4 18 6 32 6 16 0 30 6 30 16v8H10z" fill="#fff" stroke="#0B1513" stroke-width="3" stroke-linejoin="round"/><path d="M10 97h108" stroke="#0B1513" stroke-width="3"/><path d="M52 66l6-6M62 70l6-6M72 72l6-6" stroke="#0E9F6E" stroke-width="3"/><rect x="128" y="30" width="58" height="68" rx="6" fill="#F2F5F4" stroke="#0B1513" stroke-width="3"/><path d="M128 46h58" stroke="#0B1513" stroke-width="3"/></svg>
+        <div class="tagbox" style="left:6%;top:42%;width:58%;height:40%"><span>외관 0 결함</span></div>
+        <div class="tagbox" style="left:66%;top:18%;width:28%;height:62%"><span>박스·택 OK</span></div>
+      </div>
+      <div class="checks" style="margin-top:14px">
+        <div class="check" data-c="0"><span class="box"><svg width="12" height="12" viewBox="0 0 12 12"><path d="M2 6l3 3 5-6" stroke="#fff" stroke-width="2" fill="none"/></svg></span>외관 손상·오염 없음<small>vision</small></div>
+        <div class="check" data-c="1"><span class="box"><svg width="12" height="12" viewBox="0 0 12 12"><path d="M2 6l3 3 5-6" stroke="#fff" stroke-width="2" fill="none"/></svg></span>구성품 일치 (박스, 끈, 택)<small>checklist</small></div>
+        <div class="check" data-c="2"><span class="box"><svg width="12" height="12" viewBox="0 0 12 12"><path d="M2 6l3 3 5-6" stroke="#fff" stroke-width="2" fill="none"/></svg></span>무게 오차 ±2% 이내<small class="mono">1,182g</small></div>
+        <div class="check" data-c="3"><span class="box"><svg width="12" height="12" viewBox="0 0 12 12"><path d="M2 6l3 3 5-6" stroke="#fff" stroke-width="2" fill="none"/></svg></span>정품 태그·시리얼 대조<small>OCR</small></div>
+      </div>
+    </div>
+    <div class="glass pad">
+      <span class="label">검수 등급</span>
+      <div class="grades"><div class="grade" data-g="A"><b>A</b>Like New</div><div class="grade" data-g="B"><b>B</b>Good</div><div class="grade" data-g="C"><b>C</b>Review</div></div>
+      <div class="qr" id="qrBox" style="margin-top:16px"><canvas id="qr" width="180" height="180" style="opacity:.15;filter:blur(2px)"></canvas><div class="mono muted" style="font-size:11px;margin-top:8px" id="qrTok">서명 대기</div></div>
+      <div class="pill" id="refundPill" style="margin-top:12px;opacity:.25">환불 완료 · 신청 후 2.0일</div>
+    </div>
+    <div class="glass pad">
+      <span class="label">검수 이력 체인 (SHA-256)</span>
+      <div class="timeline" id="tl"></div>
+    </div>
+  </div>
+</section>
+
+<!-- 6 IMPACT -->
+<section class="screen" id="s-impact" aria-label="임팩트 대시보드">
+  <div class="head"><div><div class="eyebrow">Step 10 · Analytics</div><h2>Impact Dashboard</h2><p class="sub">창원시 30일 시뮬레이션(주문 60,000건, 반품 9,015건, 합성 데이터)과 오늘 실시간 처리분입니다.</p></div><span class="pill gray">시뮬레이션 결과 · 사전 계산</span></div>
+  <div class="kpis" id="kpis"></div>
+  <div class="grid g2" style="margin-top:18px">
+    <div class="glass pad"><b style="font-size:15px">기존 반품 vs R_ROUTE</b><div class="muted" style="font-size:12.5px;margin-bottom:14px">반품 1건 평균</div><div class="ba" id="ba"></div></div>
+    <div class="glass pad">
+      <b style="font-size:15px">민감도: 직송가능 비율을 바꾸면</b><div class="muted" style="font-size:12.5px">AI가 직송 가능하다고 판정하는 반품 비율. 기본 가정 20%.</div>
+      <div style="display:flex;align-items:baseline;gap:14px;margin:18px 0 6px;flex-wrap:wrap"><span class="big" id="sensCost">−16.4%</span><span class="muted">물류비 절감</span></div>
+      <input class="slider" id="sens" type="range" min="10" max="40" step="1" value="20" aria-label="직송가능 비율">
+      <div style="display:flex;justify-content:space-between" class="mono muted"><span>10%</span><span id="sensV">20%</span><span>40%</span></div>
+      <div class="kv" style="margin-top:14px"><div><span class="label">이동거리 절감</span><b id="sensKm">−25.7%</b></div><div><span class="label">CO₂ 절감</span><b id="sensCo2">−17.2%</b></div></div>
+      <div class="muted" style="font-size:12px;margin-top:10px">가장 보수적인 시나리오(SKU 2만 개, 수요 분산)에서도 물류비 −9.9%.</div>
+    </div>
+  </div>
+  <p class="demo-tag" style="margin-top:18px">이 페이지는 발표용 백업이며, 화면의 AI 결과와 매칭은 로컬 MVP 서버가 낸 결과를 녹화한 값입니다. 모든 수치는 공개 가정 기반 합성 데이터 시뮬레이션 결과이며, 지도 좌표와 허브는 데모용 가상 위치입니다.</p>
+</section>
+</main>
+
+<div class="toast" id="toast"></div>
+<div class="hud" id="hud" role="region" aria-label="데모 진행">
+  <span class="stepn" id="hudN">DEMO</span><span class="stept" id="hudT">▶ 데모 시작을 누르면 반품 한 건의 여정을 10단계로 보여줍니다</span>
+  <button id="hudPrev" aria-label="이전 단계">←</button><button class="go" id="hudNext">시작</button>
+  <div class="prog"><i id="hudP"></i></div>
+</div>
+
+<script>
+(() => {
+const $ = s => document.querySelector(s), $$ = s => [...document.querySelectorAll(s)];
+const RM = matchMedia('(prefers-reduced-motion: reduce)').matches;
+const won = n => Math.round(n).toLocaleString('ko-KR');
+const NS = 'http://www.w3.org/2000/svg';
+const el = (tag, attrs = {}, parent) => { const e = document.createElementNS(NS, tag); for (const k in attrs) e.setAttribute(k, attrs[k]); if (parent) parent.appendChild(e); return e; };
+const sleep = ms => new Promise(r => setTimeout(r, RM ? 0 : ms));
+function toast(msg){ const t=$('#toast'); t.innerHTML=msg; t.classList.add('on'); clearTimeout(t._h); t._h=setTimeout(()=>t.classList.remove('on'),2600); }
+
+/* ---------- routing ---------- */
+const SCREENS = ['home','analyze','map','engine','verify','impact'];
+function show(name){
+  if(!SCREENS.includes(name)) name='home';
+  $$('.screen').forEach(s=>s.classList.toggle('on', s.id==='s-'+name));
+  $$('.tab').forEach(t=>t.setAttribute('aria-current', t.dataset.go===name?'page':'false'));
+  if(location.hash.slice(1)!==name) history.replaceState(null,'','#'+name);
+  if(name==='impact') renderImpact();
+  window.scrollTo({top:0,behavior:RM?'auto':'smooth'});
+}
+document.addEventListener('click', e => { const g=e.target.closest('[data-go]'); if(g){ show(g.dataset.go); } if(e.target.closest('[data-start]')) startDemo(); });
+addEventListener('hashchange', ()=>show(location.hash.slice(1)));
+
+/* ---------- hero animation ---------- */
+(function hero(){
+  const pO=$('#oldPath'), a=$('#newA'), b=$('#newB'), kO=$('#pkOld'), kN=$('#pkNew');
+  const LO=pO.getTotalLength(), LA=a.getTotalLength(), LB=b.getTotalLength();
+  let t0=performance.now();
+  function f(t){
+    const u=((t-t0)/5200)%1;
+    const po=pO.getPointAtLength(LO*Math.min(1,u*0.55)); kO.setAttribute('cx',po.x); kO.setAttribute('cy',po.y);
+    const v=Math.min(1,u*1.6), p = v<.5 ? a.getPointAtLength(LA*v*2) : b.getPointAtLength(LB*(v-.5)*2);
+    kN.setAttribute('cx',p.x); kN.setAttribute('cy',p.y);
+    if(!RM) requestAnimationFrame(f);
+  }
+  requestAnimationFrame(f);
+})();
+
+/* ---------- ANALYZE ---------- */
+const AI = {p:.95, text:.98, img:.80, tab:.95, grade:'A', label:'Like New'};
+const EV = [['Direct Reallocation',119854,true],['Hub Storage',119230],['Seller Return',99525],['Refurbish',47734],['Donation',2422],['Disposal',-4669]];
+function renderPaths(on){
+  const max=Math.max(...EV.map(e=>e[1]));
+  $('#paths').innerHTML = EV.map(([n,v,best])=>`<div class="path ${best?'best':''}"><span>${n}</span><div class="pbar"><i style="width:${on?Math.max(1,v/max*100):0}%"></i></div><span class="mono">${on?won(v):'—'}</span></div>`).join('');
+}
+renderPaths(false);
+let sampleDrawn=false;
+function drawSample(){
+  const c=document.createElement('canvas'); c.width=360; c.height=220; const x=c.getContext('2d');
+  const g=x.createLinearGradient(0,0,360,220); g.addColorStop(0,'#F3F7F5'); g.addColorStop(1,'#DCE7E2'); x.fillStyle=g; x.fillRect(0,0,360,220);
+  x.fillStyle='#fff'; x.strokeStyle='#0B1513'; x.lineWidth=4; x.lineJoin='round';
+  x.beginPath(); x.moveTo(40,150); x.bezierCurveTo(80,150,110,130,128,100); x.lineTo(150,112); x.bezierCurveTo(170,122,200,126,240,126); x.bezierCurveTo(280,126,312,140,312,160); x.lineTo(312,175); x.lineTo(40,175); x.closePath(); x.fill(); x.stroke();
+  x.beginPath(); x.moveTo(40,175); x.lineTo(312,175); x.stroke();
+  x.strokeStyle='#0E9F6E'; [[150,118],[170,124],[190,126]].forEach(([a,b])=>{x.beginPath();x.moveTo(a,b);x.lineTo(a+10,b-10);x.stroke();});
+  x.fillStyle='#8A9894'; x.font='600 13px IBM Plex Mono, monospace'; x.fillText('AF1 07 · 270 · SAMPLE',22,30);
+  $('#dropInner').innerHTML=''; $('#dropInner').appendChild(c); $('#drop').classList.add('has'); sampleDrawn=true;
+}
+$('#file').addEventListener('change', e=>{
+  const f=e.target.files[0]; if(!f) return; const r=new FileReader();
+  r.onload=()=>{ $('#dropInner').innerHTML=`<img alt="업로드한 상품 사진" src="${r.result}">`; $('#drop').classList.add('has'); sampleDrawn=true; };
+  r.readAsDataURL(f);
+});
+async function runAI(){
+  if(!sampleDrawn) drawSample();
+  const reason=$('#reason').value;
+  const bad = reason==='damaged'||reason==='defect';
+  const R = bad ? {p:.38,text:.15,img:.45,tab:.71,grade:'C',label:'Needs Review'} : AI;
+  $('#drop').classList.add('scanning');
+  const ms=[['#m1',R.text],['#m2',R.img],['#m3',R.tab]];
+  for(const [id,v] of ms){ const m=$(id); m.classList.add('run'); await sleep(650); m.querySelector('i').style.width=(v*100)+'%'; m.querySelector('.mono').textContent=v.toFixed(2); m.classList.remove('run'); }
+  $('#drop').classList.remove('scanning');
+  $('#ringArc').style.strokeDashoffset = 452.4*(1-R.p);
+  let s=performance.now(); (function tick(t){ const u=Math.min(1,(t-s)/1100); $('#probTxt').textContent=Math.round(R.p*100*u)+'%'; if(u<1&&!RM) requestAnimationFrame(tick); else $('#probTxt').textContent=Math.round(R.p*100)+'%'; })(s);
+  const gp=$('#gradePill'); gp.className='pill'+(R.grade==='A'?'':' amber'); gp.textContent=`등급 ${R.grade} · ${R.label}`;
+  await sleep(500);
+  if(bad){ $('#paths').innerHTML='<div class="muted" style="font-size:13px">재판매 확률이 임계값(75%) 미만이라 직송·허브 경로가 차단되었습니다. 추천: Seller Return (판매자 정밀 검수)</div>'; $('#reco').classList.remove('shown'); }
+  else { renderPaths(true); $('#reco').classList.add('shown'); }
+  return !bad;
+}
+$('#runAI').addEventListener('click', runAI);
+
+/* ---------- MAP ---------- */
+const HUBS=[['H01','감계',35.3285,128.6470],['H02','팔용',35.2465,128.6295],['H03','용지',35.2360,128.6680],['H04','상남',35.2212,128.6808],['H05','가음정',35.2161,128.7004],['H06','양덕',35.2242,128.5826],['H07','내서',35.2540,128.5150],['H08','오동',35.2003,128.5713],['H09','월영',35.1823,128.5590],['H10','진해 석동',35.1500,128.6870]];
+const P = (lat,lng) => [ (lng-128.48)/0.35*1000, (35.35-lat)/0.27*640 ];
+const HERO = {ret:P(35.2195,128.6850), hub:P(35.2212,128.6808), buyers:[[P(35.2236,128.6890),'OD-2611901','이*현','1.0km',3031],[P(35.2420,128.6320),'OD-2611902','박*수','4.4km',3195],[P(35.1980,128.5760),'OD-2611903','정*호','9.6km',3385]]};
+let seedR=11; const rnd=()=>{ seedR=(seedR*16807)%2147483647; return seedR/2147483647; };
+const gauss=()=>{ let u=0,v=0; while(!u)u=rnd(); while(!v)v=rnd(); return Math.sqrt(-2*Math.log(u))*Math.cos(2*Math.PI*v); };
+const svg=$('#map');
+const L = {}; ['base','net','lines','dots','hero','labels'].forEach(k=>L[k]=el('g',{},svg));
+(function buildMap(){
+  const d=el('defs',{},svg); const rg=el('radialGradient',{id:'hubGlow'},d); el('stop',{offset:0,'stop-color':'#34D399','stop-opacity':.45},rg); el('stop',{offset:1,'stop-color':'#34D399','stop-opacity':0},rg);
+  // sea (마산만·진해만, stylized)
+  el('path',{d:'M0 640 L0 520 C 120 500, 190 470, 230 430 C 255 405, 262 360, 300 352 C 320 360, 318 420, 330 470 C 360 520, 470 520, 560 505 C 700 485, 820 470, 1000 455 L1000 640 Z',fill:'#E3EFF3'},L.base);
+  el('text',{x:150,y:590,fill:'#9DB8C2','font-size':14,'font-family':'IBM Plex Mono','letter-spacing':'.2em'},L.base).textContent='MASAN BAY';
+  el('text',{x:760,y:580,fill:'#9DB8C2','font-size':14,'font-family':'IBM Plex Mono','letter-spacing':'.2em'},L.base).textContent='JINHAE BAY';
+  for(let i=0;i<=20;i++){ el('line',{x1:i*50,y1:0,x2:i*50,y2:640,stroke:'rgba(11,21,19,.035)'},L.base); }
+  for(let i=0;i<=13;i++){ el('line',{x1:0,y1:i*50,x2:1000,y2:i*50,stroke:'rgba(11,21,19,.035)'},L.base); }
+  [['의창구',420,140],['성산구',690,250],['마산회원구',150,230],['마산합포구',140,380],['진해구',720,430]].forEach(([t,x,y])=>{ const tx=el('text',{x,y,fill:'#B3C0BC','font-size':15,'font-weight':600,'letter-spacing':'.05em'},L.base); tx.textContent=t; });
+  // hub mesh
+  const H=HUBS.map(h=>({id:h[0],name:h[1],xy:P(h[2],h[3])}));
+  // background orders & returns
+  H.forEach((h,i)=>{ for(let k=0;k<4;k++){ el('circle',{cx:h.xy[0]+gauss()*28,cy:h.xy[1]+gauss()*22,r:4,fill:'#fff',stroke:'#3168D6','stroke-width':1.8,opacity:.75},L.dots); } if(i%2===0) el('circle',{cx:h.xy[0]+gauss()*16,cy:h.xy[1]+gauss()*14,r:4.5,fill:'#F59E0B'},L.dots); });
+  H.forEach(h=>{ const g=el('g',{transform:`translate(${h.xy[0]},${h.xy[1]})`},L.labels); el('circle',{r:22,fill:'url(#hubGlow)'},g); el('rect',{x:-7,y:-7,width:14,height:14,rx:3,fill:'#0B1513',transform:'rotate(45)'},g); const t=el('text',{y:-14,'text-anchor':'middle','font-size':12,'font-weight':600,fill:'#0B1513','class':'hubl'},g); t.textContent=h.name; });
+  // background matches (from backend run)
+  [['H03',[38,26]],['H08',[-30,18]],['H05',[60,40]],['H02',[-70,-50]],['H09',[52,-46]]].forEach(([id,[dx,dy]],i)=>{
+    const h=H.find(x=>x.id===id); const [x,y]=h.xy; const p=el('path',{d:`M${x} ${y} Q ${x+dx/2+14} ${y+dy/2-24} ${x+dx} ${y+dy}`,fill:'none',stroke:'#0E9F6E','stroke-width':2,opacity:.55},L.lines);
+    el('circle',{cx:x+dx,cy:y+dy,r:4.5,fill:'#0E9F6E'},L.dots);
+  });
+})();
+let vb=[0,0,1000,640];
+function zoomTo(t,ms=1200){ const k=t[2]/1000; svg.querySelectorAll('.hubl').forEach(x=>x.setAttribute('font-size',(12*Math.max(.62,k)).toFixed(1))); const s=[...vb]; const st=performance.now(); return new Promise(res=>{ (function f(now){ const u=RM?1:Math.min(1,(now-st)/ms), e=u<.5?2*u*u:1-Math.pow(-2*u+2,2)/2; vb=s.map((v,i)=>v+(t[i]-v)*e); svg.setAttribute('viewBox',vb.join(' ')); u<1?requestAnimationFrame(f):res(); })(st); }); }
+const FEED0=[['RT-BG-02','무선 이어버드','용지 허브 → 1.6km','22,453'],['RT-BG-03','에어포스 265','오동 허브 → 1.3km','22,460'],['RT-BG-05','후드티 L','팔용 허브 → 7.8km','22,267'],['RT-BG-04','에어프라이어','가음정 허브 → 6.3km','7,012'],['RT-BG-06','텀블러','월영 허브 → 6.3km','5,030']];
+function feedRow([id,name,route,sv],hero=false){ return `<div class="feeditem ${hero?'hero':''}"><span class="pill ${hero?'':'gray'} mono" style="font-size:11px">${id}</span><div style="min-width:0"><b style="font-size:13px">${name}</b><small>${route}</small></div><span class="mono" style="color:#06694A;font-weight:600">+${sv}</span></div>`; }
+$('#feed').innerHTML=FEED0.map(r=>feedRow(r)).join('');
+let heroG=null;
+function heroReturn(){ if(heroG) heroG.remove(); heroG=el('g',{},L.hero);
+  const [rx,ry]=HERO.ret; el('circle',{cx:rx,cy:ry,r:14,fill:'#F59E0B',opacity:.25},heroG).appendChild(el('animate',{attributeName:'r',values:'8;18;8',dur:'1.6s',repeatCount:'indefinite'}));
+  el('circle',{cx:rx,cy:ry,r:5.5,fill:'#F59E0B',stroke:'#fff','stroke-width':2},heroG);
+  const t=el('text',{x:rx,y:ry+24,'text-anchor':'middle','font-size':8,'font-weight':600,fill:'#8A5605'},heroG); t.textContent='반품 RT-0427 · ATP p=0.95';
+}
+async function mapCandidates(){
+  await zoomTo([250,175,560,358]);
+  heroReturn();
+  const [hx,hy]=HERO.hub;
+  el('path',{d:`M${HERO.ret[0]} ${HERO.ret[1]} L ${hx} ${hy}`,stroke:'#F59E0B','stroke-width':1.5,'stroke-dasharray':'3 3'},heroG);
+  for(const [[x,y],id,name,km,c] of HERO.buyers){
+    await sleep(300);
+    el('circle',{cx:x,cy:y,r:6,fill:'#fff',stroke:'#3168D6','stroke-width':2.4},heroG);
+    const p=el('path',{d:`M${hx} ${hy} Q ${(hx+x)/2} ${Math.min(hy,y)-28} ${x} ${y}`,fill:'none',stroke:'#3168D6','stroke-width':1.6,'stroke-dasharray':'5 5',opacity:.8,'data-cand':id},heroG);
+    const near=id.endsWith('901'); const t=el('text',{x:near?x+8:x,y:near?y-8:y+16,'text-anchor':near?'start':'middle','font-size':near?7.5:8,'font-weight':near?700:400,fill:'#3168D6','font-family':'IBM Plex Mono'},heroG); t.textContent=near?'901':`주문 ${id.slice(-3)} · ${km} · ${won(c)}원`;
+  }
+  $('#kAtp').textContent='7'; toast('<b>ATP 편입</b> · 에어포스 270이 이동 중 재고가 되었습니다. 동일 SKU 주문 3건 발견: 901(1.0km, 3,031원) · 902(4.4km, 3,195원) · 903(9.6km, 3,385원)');
+}
+async function mapMatch(){
+  if(!heroG) await mapCandidates();
+  heroG.querySelectorAll('[data-cand]').forEach(p=>{ const win=p.getAttribute('data-cand')==='OD-2611901'; p.setAttribute('stroke',win?'#0E9F6E':'#C9D3D0'); p.setAttribute('stroke-width',win?3.2:1.2); if(win) p.removeAttribute('stroke-dasharray'); p.style.transition='all .5s'; });
+  $('#kMt').textContent='6'; $('#kSv').textContent='101,691';
+  $('#feed').insertAdjacentHTML('afterbegin', feedRow(['RT-2611-0427','에어포스 270 → 이*현','상남 허브 → 1.0km · 최소비용 간선','22,469'],true));
+}
+async function mapDeliver(){
+  if(!heroG) { await mapCandidates(); await mapMatch(); }
+  const p=heroG.querySelector('[data-cand="OD-2611901"]'); const len=p.getTotalLength(); const pk=el('circle',{r:6,fill:'#0E9F6E',stroke:'#fff','stroke-width':2},heroG);
+  const st=performance.now(); await new Promise(res=>{ (function f(t){ const u=RM?1:Math.min(1,(t-st)/1600); const q=p.getPointAtLength(len*u); pk.setAttribute('cx',q.x); pk.setAttribute('cy',q.y); u<1?requestAnimationFrame(f):res(); })(st); });
+  const [bx,by]=HERO.buyers[0][0]; const t=el('text',{x:bx+2,y:by+44,'text-anchor':'middle','font-size':9,'font-weight':700,fill:'#06694A'},heroG); t.textContent='재판매 완료 · 2.1일';
+  toast('<b>재판매 완료</b> · 반품 신청 2.1일 만에 다음 구매자에게 도착했습니다');
+}
+$('#runMatch').addEventListener('click', async()=>{ await mapCandidates(); await sleep(500); await mapMatch(); });
+
+/* ---------- ENGINE ---------- */
+const G=$('#graph');
+const NODES={R:[90,130,'반품 RT-0427','b = +1','#F59E0B'],N:[90,300,'신규 재고 (수도권)','b = +3','#3168D6'],O1:[470,70,'주문 901 · 1.0km','b = −1','#fff'],O2:[470,170,'주문 902 · 4.4km','b = −1','#fff'],O3:[470,270,'주문 903 · 9.6km','b = −1','#fff'],S:[470,370,'판매자 복귀','b = −1','#fff']};
+const ARCS=[['R','O1',3031],['R','O2',3195],['R','O3',3385],['R','S',14000],['N','O1',11500],['N','O2',11500],['N','O3',11500],['N','S',0]];
+const OPT=new Set(['R-O1','N-O2','N-O3','N-S']);
+function drawGraph(){
+  G.innerHTML='';
+  const d=el('defs',{},G); const m=el('marker',{id:'ar',viewBox:'0 0 10 10',refX:9,refY:5,markerWidth:6,markerHeight:6,orient:'auto-start-reverse'},d); el('path',{d:'M0 0L10 5L0 10z',fill:'#A7B3B0'},m);
+  const m2=el('marker',{id:'arg',viewBox:'0 0 10 10',refX:9,refY:5,markerWidth:6,markerHeight:6,orient:'auto-start-reverse'},d); el('path',{d:'M0 0L10 5L0 10z',fill:'#0E9F6E'},m2);
+  const gA=el('g',{},G);
+  ARCS.forEach(([a,b,c])=>{ const [x1,y1]=NODES[a],[x2,y2]=NODES[b]; const sx=x1+70, ex=x2-80; const p=el('path',{d:`M${sx} ${y1} C ${sx+120} ${y1}, ${ex-120} ${y2}, ${ex} ${y2}`,fill:'none',stroke:'#D3DBD8','stroke-width':1.4,'marker-end':'url(#ar)',id:`a-${a}-${b}`},gA);
+    const mid=p.getPointAtLength(p.getTotalLength()*.62); const t=el('text',{x:mid.x,y:mid.y-5,'text-anchor':'middle','font-size':11,'font-family':'IBM Plex Mono',fill:'#8A9894',id:`t-${a}-${b}`},gA); t.textContent=won(c); });
+  Object.entries(NODES).forEach(([k,[x,y,name,b,col]])=>{ const g=el('g',{transform:`translate(${x},${y})`,id:'n-'+k},G); const w=k==='R'||k==='N'?140:160;
+    el('rect',{x:-w/2,y:-24,width:w,height:48,rx:12,fill:col==='#fff'?'#fff':col,'fill-opacity':col==='#fff'?1:.12,stroke:col==='#fff'?'#CFD8D5':col,'stroke-width':1.4},g);
+    const t1=el('text',{y:-3,'text-anchor':'middle','font-size':12.5,'font-weight':600,fill:'#0B1513'},g); t1.textContent=name; const t2=el('text',{y:14,'text-anchor':'middle','font-size':11,'font-family':'IBM Plex Mono',fill:'#8A9894'},g); t2.textContent=b; });
+  $('#costRows').innerHTML=ARCS.filter(a=>a[0]==='R').map(([a,b,c])=>`<tr id="row-${a}-${b}"><td>${NODES[a][2].split(' ')[0]} → ${NODES[b][2]}</td><td class="n">${won(c)}</td><td class="n">–</td></tr>`).join('')+`<tr><td>신규 재고 → 주문 (각)</td><td class="n">11,500</td><td class="n">–</td></tr>`;
+  $('#tOpt').textContent='—';
+}
+drawGraph();
+async function solve(){
+  drawGraph();
+  for(const [a,b] of ARCS.filter(x=>x[0]==='R')){ const p=$(`#a-${a}-${b}`); p.setAttribute('stroke','#3168D6'); p.setAttribute('stroke-width',2.2); await sleep(380); p.setAttribute('stroke','#D3DBD8'); p.setAttribute('stroke-width',1.4); }
+  await sleep(200);
+  ARCS.forEach(([a,b])=>{ const k=`${a}-${b}`, on=OPT.has(k), p=$(`#a-${k}`), t=$(`#t-${k}`); p.style.transition='all .5s'; if(on && k!=='N-S'){ p.setAttribute('stroke','#0E9F6E'); p.setAttribute('stroke-width',3.4); p.setAttribute('marker-end','url(#arg)'); t.setAttribute('fill','#06694A'); t.setAttribute('font-weight','700'); } else { p.setAttribute('opacity',on?.5:.25); t.setAttribute('opacity',on?.6:.3); } });
+  $$('#costRows tr').forEach(r=>{ const k=r.id.replace('row-',''); if(!r.id){ r.lastElementChild.textContent='2'; return; } const on=OPT.has(k); r.classList.toggle('win',on); r.lastElementChild.textContent=on?'1':'0'; });
+  const s=performance.now(); (function f(t){ const u=RM?1:Math.min(1,(t-s)/900); $('#tOpt').textContent=won(48500-(22469*u)); if(u<1) requestAnimationFrame(f); })(s);
+  $('#tBase').innerHTML='<s>48,500</s>';
+  toast('<b>OPTIMAL</b> · 총비용 48,500원 → 26,031원 (−22,469원). 반품은 주문 901로, 신규 재고는 902·903으로');
+}
+$('#solveBtn').addEventListener('click', solve);
+
+/* ---------- VERIFY ---------- */
+const EVENTS=[['REQUESTED','반품 신청 · 사이즈'],['AI_GRADED','p=0.95 · 등급 A'],['ATP_ENROLLED','상남 허브 · 이동 중 재고'],['MATCHED','주문 OD-2611901 · 1.0km'],['INSPECTED','허브 검수 4/4 통과'],['SEALED','QR 봉인'],['REFUNDED','허브 검수 = 반환 간주'],['DELIVERED','다음 구매자 수령']];
+async function sha(s){ try{ const b=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(s)); return [...new Uint8Array(b)].map(x=>x.toString(16).padStart(2,'0')).join(''); }catch(e){ let h=0; for(const c of s) h=(h*31+c.charCodeAt(0))|0; return (h>>>0).toString(16).padStart(8,'0').repeat(8); } }
+let HASHES=[];
+(async()=>{ let prev='0'.repeat(64); for(const [t,d] of EVENTS){ prev=await sha(prev+t+d); HASHES.push(prev); } renderTL(0); })();
+function renderTL(n){ $('#tl').innerHTML=EVENTS.map(([t,d],i)=>`<div class="ev ${i<n?'on':''}"><span class="node"></span><div style="min-width:0"><b style="font-size:13px">${t}</b><div class="muted" style="font-size:12px">${d}</div></div><span class="mono">${HASHES[i]?HASHES[i].slice(0,10):''}</span></div>`).join(''); }
+function drawQR(text){ const c=$('#qr'), x=c.getContext('2d'); x.fillStyle='#fff'; x.fillRect(0,0,180,180);
+  try{ const q=qrcode(0,'M'); q.addData(text); q.make(); const n=q.getModuleCount(), s=Math.floor(164/n), o=Math.floor((180-s*n)/2); x.fillStyle='#0B1513'; for(let r=0;r<n;r++) for(let k=0;k<n;k++) if(q.isDark(r,k)) x.fillRect(o+k*s,o+r*s,s,s); }
+  catch(e){ x.fillStyle='#0B1513'; let h=7; for(let r=0;r<29;r++) for(let k=0;k<29;k++){ h=(h*48271)%2147483647; const fin=(r<7&&k<7)||(r<7&&k>21)||(r>21&&k<7); if(fin? (r%6===0||k%6===0||(r%6>1&&r%6<5&&k%6>1&&k%6<5)) : h%2) x.fillRect(8+k*5.6,8+r*5.6,5.6,5.6); } }
+}
+drawQR('https://r-route.example/verify/pending');
+async function verifyInspect(){
+  renderTL(4); $('#insp').classList.remove('on'); $$('.check').forEach(c=>c.classList.remove('ok')); $$('.grade').forEach(g=>g.classList.remove('on'));
+  await sleep(300); $('#insp').classList.add('on');
+  for(const c of $$('.check')){ await sleep(420); c.classList.add('ok'); }
+  await sleep(300); $('.grade[data-g="A"]').classList.add('on'); renderTL(5);
+}
+async function verifySeal(){
+  if(!$('.grade.on')) await verifyInspect();
+  const tok='eyJyaWQiOiJSVC0yNjExLTA0MjciLCJncmFkZSI6IkEiLCJodWIiOiJINDQifQ.'+(HASHES[5]||'').slice(0,22);
+  drawQR('https://r-route.example/verify/'+tok); const c=$('#qr'); c.style.opacity=1; c.style.filter='none'; $('#qrBox').classList.add('sealed');
+  $('#qrTok').textContent=tok.slice(0,18)+'…'+tok.slice(-8);
+  await sleep(400); renderTL(7); $('#refundPill').style.opacity=1;
+  toast('<b>환불 완료</b> · 허브 검수 완료를 판매자 수령으로 간주(대리수령 약정)해 즉시 환불했습니다');
+}
+
+/* ---------- IMPACT ---------- */
+const KPIS=[['물류비 (반품 1건)',-16.4,'%','10,559원 → 8,826원'],['재판매 리드타임',-40.1,'%','5.6일 → 3.3일 (직송가능)'],['CO₂ 배출',-17.2,'%','0.402kg → 0.333kg'],['직송 매칭률',74.6,'%','직송가능 1,743건 중 1,300건'],['환불 소요 (직송 건)',-64.3,'%','5.6일 → 2.0일'],['이동거리',-25.7,'%','185km → 138km']];
+let impactDone=false;
+function renderImpact(){
+  $('#kpis').innerHTML=KPIS.map(([n,v,u,s],i)=>`<div class="glass kpi"><span class="label">${n}</span><b class="${v<0||i===3?'g':''}" data-v="${v}">0${u}</b><span class="muted" style="font-size:12.5px">${s}</span></div>`).join('');
+  const st=performance.now(); (function f(t){ const u=RM?1:Math.min(1,(t-st)/1300), e=1-Math.pow(1-u,3); $$('#kpis b').forEach(b=>{ const v=+b.dataset.v; b.textContent=(v<0?'−':'')+Math.abs(v*e).toFixed(1)+'%'; }); if(u<1) requestAnimationFrame(f); })(st);
+  const BA=[['물류비',10559,8826,'원'],['배송비',8059,6459,'원'],['이동거리',185.3,137.6,'km'],['환불 소요',5.6,4.9,'일'],['CO₂',.402,.333,'kg']];
+  $('#ba').innerHTML=BA.map(([n,b,a,u])=>`<div class="barow"><span>${n}</span><div class="bars2"><div class="b" style="width:0" data-w="78"><span>${u==='원'?won(b):b}${u}</span></div><div class="a" style="width:0" data-w="${(78*a/b).toFixed(1)}"><span>${u==='원'?won(a):a}${u}</span></div></div></div>`).join('');
+  requestAnimationFrame(()=>$$('#ba [data-w]').forEach(d=>d.style.width=d.dataset.w+'%'));
+  impactDone=true;
+}
+const SENS={10:[8.3,13.0,8.8],20:[16.4,25.7,17.2],30:[24.7,38.7,25.9],40:[32.8,51.5,34.4]};
+function interp(v,i){ const lo=Math.floor(v/10)*10, hi=Math.min(40,lo+10); if(lo===hi) return SENS[lo][i]; const t=(v-lo)/10; return SENS[lo][i]+(SENS[hi][i]-SENS[lo][i])*t; }
+$('#sens').addEventListener('input',e=>{ const v=+e.target.value; $('#sensV').textContent=v+'%'; $('#sensCost').textContent='−'+interp(v,0).toFixed(1)+'%'; $('#sensKm').textContent='−'+interp(v,1).toFixed(1)+'%'; $('#sensCo2').textContent='−'+interp(v,2).toFixed(1)+'%'; });
+
+/* ---------- DEMO SCRIPT ---------- */
+const STEPS=[
+  ['analyze','고객이 에어포스 270 반품을 신청합니다', async()=>{ $('#reason').value='size'; const f=$('#returnForm'); f.style.boxShadow='0 0 0 3px rgba(16,185,129,.35)'; await sleep(900); f.style.boxShadow=''; }],
+  ['analyze','상품 사진을 올립니다', async()=>{ drawSample(); }],
+  ['analyze','AI가 사유·이미지·정형 변수를 분석합니다', async()=>{ await runAI(); }],
+  ['analyze','재판매 확률 95%, 등급 A → Direct Reallocation 추천', async()=>{ if(!$('#reco').classList.contains('shown')) await runAI(); $('#reco').scrollIntoView({behavior:RM?'auto':'smooth',block:'center'}); }],
+  ['map','ATP 편입 · 반경 내 같은 상품 주문 3건을 찾습니다', async()=>{ await mapCandidates(); }],
+  ['engine','Min Cost Flow가 최적 구매자를 고릅니다', async()=>{ await solve(); await sleep(1400); show('map'); await mapMatch(); }],
+  ['verify','상남 허브에서 4개 항목을 검수합니다', async()=>{ await verifyInspect(); }],
+  ['verify','QR로 봉인하고 즉시 환불합니다', async()=>{ await verifySeal(); }],
+  ['map','다음 구매자에게 배송, 2.1일 만에 재판매 완료', async()=>{ await mapDeliver(); }],
+  ['impact','쌓이면 이렇게 됩니다 · 물류비 −16.4%, 리드타임 −40%', async()=>{}],
+];
+let step=-1, busy=false;
+async function go(i){
+  if(busy) return; i=Math.max(0,Math.min(STEPS.length-1,i)); busy=true; step=i;
+  const [scr,txt,fn]=STEPS[i]; show(scr);
+  $('#hudN').textContent=`STEP ${String(i+1).padStart(2,'0')}/10`; $('#hudT').textContent=txt; $('#hudP').style.width=((i+1)/STEPS.length*100)+'%';
+  $('#hudNext').textContent = i===STEPS.length-1 ? '처음으로' : '다음 →';
+  try{ await fn(); }catch(e){ console.warn(e); }
+  busy=false;
+}
+function reset(){ if(heroG){ heroG.remove(); heroG=null; } zoomTo([0,0,1000,640],10); $('#kAtp').textContent='6'; $('#kMt').textContent='5'; $('#kSv').textContent='79,222'; $('#feed').innerHTML=FEED0.map(r=>feedRow(r)).join(''); drawGraph(); $('#tBase').textContent='48,500'; renderTL(0); $('#qr').style.opacity=.15; $('#qr').style.filter='blur(2px)'; $('#qrBox').classList.remove('sealed'); $('#refundPill').style.opacity=.25; $$('.check').forEach(c=>c.classList.remove('ok')); $$('.grade').forEach(g=>g.classList.remove('on')); $('#insp').classList.remove('on'); $('#ringArc').style.strokeDashoffset=452.4; $('#probTxt').textContent='—'; $$('.model i').forEach(i=>i.style.width=0); $$('.model .mono').forEach(m=>m.textContent='—'); renderPaths(false); $('#reco').classList.remove('shown'); }
+function startDemo(){ reset(); step=-1; go(0); }
+$('#startDemo').addEventListener('click', startDemo);
+$('#hudNext').addEventListener('click', ()=>{ if(step===-1) startDemo(); else if(step===STEPS.length-1){ reset(); step=-1; show('home'); $('#hudN').textContent='DEMO'; $('#hudT').textContent='▶ 데모 시작을 누르면 반품 한 건의 여정을 10단계로 보여줍니다'; $('#hudP').style.width=0; $('#hudNext').textContent='시작'; } else go(step+1); });
+$('#hudPrev').addEventListener('click', ()=>{ if(step>0) go(step-1); });
+addEventListener('keydown', e=>{ if(e.target.closest('input,textarea,select')) return; if(e.key===' '||e.key==='ArrowRight'){ e.preventDefault(); $('#hudNext').click(); } if(e.key==='ArrowLeft'){ $('#hudPrev').click(); } });
+
+show(location.hash.slice(1)||'home');
+})();
+</script>
+
+</body>
+</html>
